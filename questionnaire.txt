@@ -1,0 +1,35 @@
+1. What is an ADT message?
+ An Admit/Discharge/Transfer message, a transactional message representing data relating to a patient being admitted to a healthcare facility, discharged from a facility, or transferred between facilities. Usually "ADT message" refers specifically to an HL7 version 2 Admit/Discharge/Transfer message with the message type "ADT".
+
+2. What are HL7 Separator characters?
+ HL7 as a standard is simply delimited text, which uses special characters (Separators) that an HL7 parser can use to read and make sense of the text. The separators are not part of the content of the message, but rather its structure. An HL7 message is divided into "Segments", generally delimited by a new line/carriage return character. The segments are divided into "Fields", usually by a pipe "|" character. These fields are subdivided by a component separator, usually a carrot/hat "^". These are further divided into subcomponents, usually an ampersand "&". Repeating fields (essentially an array of objects) can be represented as well, usually by a tilde "~". All of these characters (and the character used to escape special characters that are not meant to be parsed by the parser) are set in each HL7 message in the first two fields of the MSH segment.
+
+3. What function would you use to update the date and time to current in MSH segment in Mirth?
+ The simplest way would probably be to use DateUtil.getCurrentDate("yyyyMMddHHmmss") - since this returns a string, you can pass that into the MSH.7 field of the current message. The exact syntax depends on where the code is being executed, but - for example - in the Source/Destination Transformer, it would be something like msg['MSH']['MSH.7']['MSH.7.1'] = DateUtil.getCurrentDate("yyyyMMddHHmmss");
+
+4. A sending application sends all ADT types. The client only accepts ADT-A01. How would you handle that in Mirth?
+ Somewhere in the flow of channel(s) processing the messages before it reached the client, you would use a source or destination filter to check the values of MSH.9.1 and MSH.9.2 and return "false" if it was not an ADT-A01 message, "true" if it was. This would cause all messages that weren't ADT-A01's to gain a status of FILTERED, and they would not proceed past that point.
+
+5. Where in Mirth would you write code that is used in multiple channels?
+ You'd use Code Templates for snippets of code (i.e. functions) you wanted certain channels to be able to use, and Global Scripts for code you wanted every channel to have access to (generally things like global variables, since Global Scripts' code runs when Mirth starts).
+
+6. Where would you set a certain type of data for a channel to receive and send out?
+ Mirth channels operate using a series of "connectors", starting with 1 Source connector and 1-Many Destination connectors. Data Types are assigned to the Inbound and Outbound of each connector. This can be done from the Summary tab of each channel by hitting the "Set Data Types" button, or can be set in the Edit Filter and Edit Transformer sections of each connector. Depending on which Data Type is selected, Mirth will attempt to use its internal parser to parse the message, expecting that format (always HL7v2.x by default) - but parsing can be disabled by selecting the "Raw" Data Type - which still allows for any Data Type to be used - it's just not automatically parsed by Mirth.
+
+7. How would you allow the code, written in question 5, to be used by a channel?
+ Clicking the "Set Dependencies" button on the Summary page for each channel will let you assign that channel to a specific Code Template or Library of Code Templates. This can also be done by going to Channels > Edit Code Templates, where you can select one or more channels to be assigned to a Code Template or Library. 
+
+8. Inbound and outbound message templates are used for what?
+ Inbound and Outbound messages templates are used to create objects that can be used in a message Transformer to change the contents or structure of a message as it passes through that component. By putting a textual representation of the message into a template and setting the Data Type, these objects become available to use and simplify the task of reading from or writing to specific elements in a message. Mirth also names the elements of the template object according to the parser and/or the settings for that Data Type, making transformation code more human-readable.
+
+9. How would you map a variable without the use of JavaScript?
+ Mirth has a GUI-based "Mapper" Transformation type that allows you to assign values to the various Maps without the use of JavaScript. It also has a tab that lets you see/use the generated script created by using this GUI tool.
+
+10. Using JavaScript, loop through any 3 element array and log/write out the individual elements.
+ var junkArray = ['a','b','c'];
+ for each(element in junkArray) {
+    logger.info(element);
+ }
+
+11. What is the Velocity Template Language? Can you provide an example?
+ Velocity Template Language is an Apache templating language that can be used inline with HTML to replace dynamic variables with the current value of said variable. Mirth uses the VTL syntax in various places, including in some forms to allow variables from the Global Map or Global Channel Map to stand in for a hard-coded value and be replaced upon deployment. It is also used in HTML-based connectors such as the Document or SMTP Writer destinations, allowing Mirth to generate dynamic emails and documents based on the values in the various Maps at the time of execution. Standard VTL can also be used to set and manipulate new variables scoped within that particular component. For example: <html><body>#set($a = "123") This message was generated from ${message.channelId}. The value of \$a is ${a}.</body></html> in a Document Writer destination connector would create a document with the content "This message was generated from ((the GUID of the channel it was run from)). The value of $a is 123."
